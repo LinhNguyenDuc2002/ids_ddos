@@ -1,0 +1,74 @@
+select * from ulog.tlog where ltexte like '%PK_QTHT_DANHBA%' and luser = 'CLOUD_ADMIN' order by ldate desc;
+
+select PK_QTHT_DANHBA.get_list_danh_ba('hungnhh.lcu', '0', 'CLOUD_ADMIN') from dual;
+
+select CLOUD_ADMIN.PK_QTHT_COMMON.getAgentByUser('hungnhh.lcu') from DUAL;
+
+select ur.agent_id
+            from user_info ur
+            where ur.userid = 'hungnhh.lcu';
+
+select * from ulog.tlog where ltexte like '%get_list_danh_ba%' order by ldate desc;
+
+SELECT UNIT_ID FROM QLVB_VNPT_VTT_LCU.HRM_EMP_UNIT WHERE EMP_ID = 'thuyetdv.lcu.cb' AND ROWNUM = 1; --320
+SELECT UNIT_ID FROM QLVB_VNPT_VTT_LCU.HRM_EMP_UNIT WHERE EMP_ID = 'thuyetdv.lcu.cb' AND ROWNUM = 1; --320
+SELECT ID
+      FROM QLVB_VNPT_VTT_LCU.HRM_UNIT
+      WHERE TYPE_UNIT = 0 AND ROWNUM = 1
+      CONNECT BY PRIOR PARENT_UNIT_ID = ID
+      START WITH ID = 320; --100
+SELECT WM_CONCAT(UNIT_ID)
+    FROM (SELECT 100 AS UNIT_ID FROM DUAL
+      UNION
+     SELECT ID_UNIT_DES AS UNIT_ID FROM QLVB_VNPT_VTT_LCU.HRM_UNIT_CONFIG WHERE ID_UNIT_SRC = 100 AND IS_QLLH = 1); --100
+SELECT COUNT(*) FROM QLVB_VNPT_VTT_LCU.HRM_UNIT WHERE ID IN 100 AND PARENT_UNIT_ID IS NULL; --1
+
+SELECT DISTINCT u.ID AS UNIT_ID, u.ORDER_DV, u.NAME AS UNIT_NAME, e.ID AS EMP_ID, p.FULL_NAME, p.EMAIL, e_po.NAME AS CHUC_DANH, u.PARENT_UNIT_ID,
+      u.LEVEL_U, u_m.ORDER_ AS STT_E, e_u.STT AS STT_E1, u.STT_U, p.MOBILE, u_i.SEX, to_char(p.DOB,'DD/MM/YYYY') AS BIRTHDAY
+FROM (
+      select ID, PERSON_ID 
+      from QLVB_VNPT_VTT_LCU.HRM_EMPLOYEE --OFFICETD-2791
+      where 
+            ID NOT IN (
+                select EMP_ID 
+                from QLVB_VNPT_VTT_LCU.HRM_EMP_UNIT
+            )
+            or
+            ID IN (
+                select EMP_ID 
+                from QLVB_VNPT_VTT_LCU.HRM_EMP_UNIT where UNIT_ID = 320
+            )
+      -- ID: thuyetdv.lcu PERSON_ID: 380
+      -- ID: thuyetdv.lcu.cb PERSON_ID: 1003068
+) e
+INNER JOIN USER_INFO u_i
+ON e.ID  = u_i.USERID
+AND u_i.STATUS = 0
+INNER JOIN QLVB_VNPT_VTT_LCU.HRM_PERSON p
+ON e.PERSON_ID = p.ID
+LEFT JOIN QLVB_VNPT_VTT_LCU.HRM_EMP_UNIT e_u
+ON e.ID = e_u.EMP_ID AND e_u.UNIT_ID = 320
+LEFT JOIN QLVB_VNPT_VTT_LCU.HRM_UNIT_MANAGER u_m
+ON e.ID = u_m.EMP_ID AND e_u.UNIT_ID = u_m.UNIT_ID
+LEFT JOIN (
+    SELECT e_po1.EMP_ID, po1.NAME, e_po1.UNIT_ID
+    FROM QLVB_VNPT_VTT_LCU.HRM_EMP_POSITIONS e_po1
+    INNER JOIN QLVB_VNPT_VTT_LCU.HRM_JOB_POSITION po1
+    ON e_po1.JOB_POSITION_ID = po1.ID
+) e_po
+ON e.ID = e_po.EMP_ID AND e_u.UNIT_ID = e_po.UNIT_ID
+FULL OUTER JOIN (   
+    SELECT ID, NAME, PARENT_UNIT_ID, LEVEL AS LEVEL_U, ROWNUM AS STT_U, ORDER_DV
+    FROM (
+        SELECT ID, NAME, TYPE_UNIT, IS_PHU_THUOC, PARENT_UNIT_ID, ORDER_DV
+        FROM QLVB_VNPT_VTT_LCU.HRM_UNIT
+        WHERE TYPE_UNIT = 1 OR ID IN 100
+    )
+    CONNECT BY PRIOR ID = PARENT_UNIT_ID
+    START WITH PARENT_UNIT_ID IS NULL
+    ORDER SIBLINGS BY ORDER_DV
+) u
+ON e_u.UNIT_ID = u.ID
+ORDER BY STT_U, STT_E, STT_E1;
+
+DELETE FROM QLVB_VNPT_VTT_LCU.HRM_EMPLOYEE WHERE ID = 'thuyetdv.lcu';
